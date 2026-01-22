@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Diggin",
+  "version": "1.0",
+  "description": "Highlight text to find vinyl records on Discogs.",
+  "permissions": ["contextMenus"],
+  "host_permissions": ["https://api.discogs.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
