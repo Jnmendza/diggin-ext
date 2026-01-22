@@ -1,22 +1,25 @@
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "SHOW_POPUP") {
-    showFloatingPopup(request.data);
-  } else if (request.action === "NO_RESULTS") {
-    showErrorPopup(request.query);
-  }
-});
+if (!window.hasDigginRun) {
+  window.hasDigginRun = true;
 
-function showFloatingPopup(data) {
-  removeExistingPopup();
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "SHOW_POPUP") {
+      showFloatingPopup(request.data);
+    } else if (request.action === "NO_RESULTS") {
+      showErrorPopup(request.query);
+    }
+  });
 
-  const selection = window.getSelection();
-  if (!selection.rangeCount) return;
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
+  function showFloatingPopup(data) {
+    removeExistingPopup();
 
-  const modal = document.createElement("div");
-  modal.id = "vs-modal";
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
 
-  modal.style.cssText = `
+    const modal = document.createElement("div");
+    modal.id = "vs-modal";
+
+    modal.style.cssText = `
     position: absolute; 
     visibility: hidden; 
     width: 320px; 
@@ -30,9 +33,9 @@ function showFloatingPopup(data) {
     z-index: 2147483647;
   `;
 
-  // Inject Styles (Button & Animations)
-  const style = document.createElement("style");
-  style.textContent = `
+    // Inject Styles (Button & Animations)
+    const style = document.createElement("style");
+    style.textContent = `
     @keyframes vs-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes vs-fade-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     
@@ -53,20 +56,20 @@ function showFloatingPopup(data) {
       transform: translateY(2px); border-bottom-width: 0px; margin-top: 4px;
     }
   `;
-  if (!document.getElementById("vs-styles")) {
-    style.id = "vs-styles";
-    document.head.appendChild(style);
-  }
+    if (!document.getElementById("vs-styles")) {
+      style.id = "vs-styles";
+      document.head.appendChild(style);
+    }
 
-  // HTML Content
-  const genreTag = data.genre
-    ? `<span class="vs-tag">${data.genre}</span>`
-    : "";
-  const countryTag = data.country
-    ? `<span class="vs-tag">${data.country}</span>`
-    : "";
+    // HTML Content
+    const genreTag = data.genre
+      ? `<span class="vs-tag">${data.genre}</span>`
+      : "";
+    const countryTag = data.country
+      ? `<span class="vs-tag">${data.country}</span>`
+      : "";
 
-  modal.innerHTML = `
+    modal.innerHTML = `
     <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px;">
         <span style="font-size:10px; color:#f5df2e; font-weight:900; letter-spacing:1px; text-transform:uppercase;">Diggin Match</span>
         <div id="vs-close" style="cursor:pointer; color:#666; font-size:16px; line-height:10px;">✕</div>
@@ -92,86 +95,87 @@ function showFloatingPopup(data) {
     </div>
   `;
 
-  document.body.appendChild(modal);
+    document.body.appendChild(modal);
 
-  // --- 2. CALCULATE POSITION ---
-  const modalHeight = modal.offsetHeight;
-  const viewportHeight = window.innerHeight;
-  const spaceBelow = viewportHeight - rect.bottom;
-  const spaceAbove = rect.top;
+    // --- 2. CALCULATE POSITION ---
+    const modalHeight = modal.offsetHeight;
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
 
-  let topPos, animationName;
+    let topPos, animationName;
 
-  // LOGIC: If there isn't enough space below (approx 220px) AND there IS space above, flip it.
-  if (spaceBelow < modalHeight + 20 && spaceAbove > modalHeight + 20) {
-    // Position ABOVE
-    topPos = rect.top + window.scrollY - modalHeight - 12;
-    animationName = "vs-fade-up"; // Animate upwards
-  } else {
-    // Position BELOW (Default)
-    topPos = rect.bottom + window.scrollY + 12;
-    animationName = "vs-fade-down"; // Animate downwards
+    // LOGIC: If there isn't enough space below (approx 220px) AND there IS space above, flip it.
+    if (spaceBelow < modalHeight + 20 && spaceAbove > modalHeight + 20) {
+      // Position ABOVE
+      topPos = rect.top + window.scrollY - modalHeight - 12;
+      animationName = "vs-fade-up"; // Animate upwards
+    } else {
+      // Position BELOW (Default)
+      topPos = rect.bottom + window.scrollY + 12;
+      animationName = "vs-fade-down"; // Animate downwards
+    }
+
+    // --- 3. APPLY FINAL STYLES ---
+    modal.style.top = `${topPos}px`;
+    modal.style.left = `${rect.left + window.scrollX}px`;
+    modal.style.visibility = "visible";
+    modal.style.animation = `${animationName} 0.2s ease-out`;
+
+    // Listeners
+    document.getElementById("vs-close").onclick = removeExistingPopup;
+    document.getElementById("vs-go-diggin").onclick = () => {
+      const searchUrl = `https://www.discogs.com/sell/list?q=${encodeURIComponent(data.title)}&format=Vinyl&condition=Mint+(M)&item_location=US`;
+      window.open(searchUrl, "_blank");
+      removeExistingPopup();
+    };
+
+    setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+    }, 100);
   }
 
-  // --- 3. APPLY FINAL STYLES ---
-  modal.style.top = `${topPos}px`;
-  modal.style.left = `${rect.left + window.scrollX}px`;
-  modal.style.visibility = "visible";
-  modal.style.animation = `${animationName} 0.2s ease-out`;
-
-  // Listeners
-  document.getElementById("vs-close").onclick = removeExistingPopup;
-  document.getElementById("vs-go-diggin").onclick = () => {
-    const searchUrl = `https://www.discogs.com/sell/list?q=${encodeURIComponent(data.title)}&format=Vinyl&condition=Mint+(M)&item_location=US`;
-    window.open(searchUrl, "_blank");
+  function showErrorPopup(query) {
     removeExistingPopup();
-  };
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
 
-  setTimeout(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-  }, 100);
-}
+    const msg = document.createElement("div");
+    msg.id = "vs-modal";
 
-function showErrorPopup(query) {
-  removeExistingPopup();
-  const selection = window.getSelection();
-  if (!selection.rangeCount) return;
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
+    // Simple check for error popup too
+    const spaceBelow = window.innerHeight - rect.bottom;
+    let topPos =
+      spaceBelow < 50
+        ? rect.top + window.scrollY - 40
+        : rect.bottom + window.scrollY + 8;
 
-  const msg = document.createElement("div");
-  msg.id = "vs-modal";
-
-  // Simple check for error popup too
-  const spaceBelow = window.innerHeight - rect.bottom;
-  let topPos =
-    spaceBelow < 50
-      ? rect.top + window.scrollY - 40
-      : rect.bottom + window.scrollY + 8;
-
-  msg.style.cssText = `
+    msg.style.cssText = `
     position: absolute; top: ${topPos}px; left: ${rect.left + window.scrollX}px;
     z-index: 2147483647; background: #222; color: #fff; padding: 8px 12px; border-radius: 6px;
     font-size: 12px; font-family: sans-serif; font-weight: 600; border: 1px solid #333;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none;
   `;
-  msg.innerHTML = `<span style="color:#f5df2e">✕</span> No vinyl found for "${truncate(query, 15)}"`;
-  document.body.appendChild(msg);
-  setTimeout(removeExistingPopup, 2000);
-}
-
-function removeExistingPopup() {
-  const existing = document.getElementById("vs-modal");
-  if (existing) existing.remove();
-  document.removeEventListener("mousedown", handleClickOutside);
-}
-
-function handleClickOutside(e) {
-  const modal = document.getElementById("vs-modal");
-  if (modal && !modal.contains(e.target)) {
-    removeExistingPopup();
+    msg.innerHTML = `<span style="color:#f5df2e">✕</span> No vinyl found for "${truncate(query, 15)}"`;
+    document.body.appendChild(msg);
+    setTimeout(removeExistingPopup, 2000);
   }
-}
 
-function truncate(str, n) {
-  return str && str.length > n ? str.substr(0, n - 1) + "..." : str || "";
+  function removeExistingPopup() {
+    const existing = document.getElementById("vs-modal");
+    if (existing) existing.remove();
+    document.removeEventListener("mousedown", handleClickOutside);
+  }
+
+  function handleClickOutside(e) {
+    const modal = document.getElementById("vs-modal");
+    if (modal && !modal.contains(e.target)) {
+      removeExistingPopup();
+    }
+  }
+
+  function truncate(str, n) {
+    return str && str.length > n ? str.substr(0, n - 1) + "..." : str || "";
+  }
 }

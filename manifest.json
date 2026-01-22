@@ -1,19 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Diggin",
-  "version": "1.0",
-  "description": "Highlight text to find vinyl records on Discogs.",
-  "permissions": ["contextMenus"],
-  "host_permissions": ["https://api.discogs.com/*"],
+  "name": "Diggin: Vinyl Price Search",
+  "version": "1.0.0",
+  "description": "Instant Discogs pricing for vinyl collectors.",
+  "permissions": ["activeTab", "scripting", "contextMenus"],
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
